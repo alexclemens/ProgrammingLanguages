@@ -94,18 +94,18 @@ PARSER STARTS HERE
 >-- identifier = T.pack <$> some alphaNumChar
 
 
-> variable :: Parser LExp
-> variable = Var <$> identifier
+% > variable :: Parser LExp
+% > variable = Var <$> identifier
 
 
-> application :: Parser LExp
-> application = between (space *> char '(') (space *> char ')') $ do
->         space
->         l <- LExp
->         space
->         r <- LExp
->         space
->         return (App l r)
+% > application :: Parser LExp
+% > application = between (space *> char '(') (space *> char ')') $ do
+% >         space
+% >         l <- LExp
+% >         space
+% >         r <- LExp
+% >         space
+% >         return (App l r)
     
 This is unfinished
 % > lambdaAbstraction :: Parser LExp
@@ -128,7 +128,7 @@ This is unfinished
 % > lambdaParser :: Parser LExp
 % > lambdaParser = between spaceConsume eof stmt
 
-> parseStmts :: [Token] -> Either String (Stmt,[Token])
+> parseStmts :: [Token] -> Either String (LExp,[Token])
 > parseStmts ts = case parseStmt ts of
 >   Right (stmts,ts') -> case ts' of
 >     (TDot:ts'') -> Right (stmts,TDot:ts'')
@@ -138,33 +138,35 @@ This is unfinished
 >   Left  e          -> Left e
 
 
-> parseStmts' :: Stmt -> [Token] -> Either String (Stmt,[Token])
+> parseStmts' :: LExp -> [Token] -> Either String (LExp,[Token])
 > parseStmts' lhs ts = case parseStmts ts of
 >   Right (stmt,ts') -> Right (LExp lhs stmt, ts')
 >   Left e -> Left e
 >
 >
-> parseStmt :: [Token] -> Either String (Stmt,[Token])
+> parseStmt :: [Token] -> Either String (LExp,[Token])
 > parseStmt (TLet:ts) = case parseLExp ts of
 >   Left  e           -> Left e
->   Right (bexp, ts') -> parseLetStmt lexp ts'
-
-> parseStmt (TId id:ts) = case parseAExpAssign id ts of
->   Right (aexp, ts') -> Right (Assign id aexp, ts')
->   Left  e           -> Left e
-> parseStmt ts = Left $ "Not a valid statement. Found: " ++ show ts
+>   Right (lexp, ts') -> parseLetStmt lexp ts'
+>
 
 
+% > parseStmt (TId id:ts) = case parseAExpAssign id ts of
+% >   Right (aexp, ts') -> Right (Assign id aexp, ts')
+% >   Left  e           -> Left e
+% > parseStmt ts = Left $ "Not a valid statement. Found: " ++ show ts
 
 
-> parseLetStmt :: Parser LExp
-> parseLetStmt = do
->   rword "let"
->   stmt1  <- LExp
->   rword "in"
->   stmt2 <- stmt
->   return (If cond stmt1 stmt2)
 
+
+> parseLetStmt :: LExp -> [Token] -> Either String (LExp,[Token])
+> parseLetStmt lexp (TEq:ts) =
+>   case parseStmts ts of
+>     Left e -> Left e
+>     Right (stmts, (TIn:ts')) -> Right (stmts, ts')
+>     Right _ -> Left "Expected In Keyword"
+> parseLetStmt _ ts = Left $ "parseLetStmt error: Found " ++ show ts
+>
 
 
 
